@@ -1,5 +1,5 @@
 run:
-	gcc -fopenmp openmp_helloWorld.c
+	g++ -fopenmp tutorial.cpp
 	./a.out
 clean:
 	rm a.out
