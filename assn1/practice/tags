@@ -1,7 +1,0 @@
-!_TAG_FILE_SORTED	2	/0=unsorted, 1=sorted, 2=foldcase/
-atomic	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^void atomic()$/;"	f	language:C++
-critical	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^void critical(int id, int size)$/;"	f	language:C++
-heirarchical_pragmas	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^void heirarchical_pragmas()$/;"	f	language:C++
-main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^int main()$/;"	f	language:C++
-NUM_THREADS	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^int NUM_THREADS = 4;$/;"	v	language:C++
-vector_of_pointers	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^vector<int *> vector_of_pointers(int n)$/;"	f	language:C++
