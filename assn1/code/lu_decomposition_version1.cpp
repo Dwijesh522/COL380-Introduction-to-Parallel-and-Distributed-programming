@@ -3,6 +3,7 @@
 #include<vector>
 #include<chrono>
 #include<time.h>
+#include<algorithm>
 
 using namespace std;
 using namespace std::chrono;
@@ -79,7 +80,7 @@ int main(int argc, char *argv[])
 			}
 		}
 		// Initializing mat: 64000000 elements with random doubleing point values
-		#pragma omp for schedule(static, 4) collapse(2) nowait
+		#pragma omp for schedule(static, 4) collapse(2)
 		for(int i=0; i<MATRIX_SIZE; i++)
 		{
 			for(int j=0; j<MATRIX_SIZE; j++)
@@ -132,7 +133,10 @@ int main(int argc, char *argv[])
 		end = (*lower[k_dash]).begin() + k;
 		vector<double> temp_sub_vector_lower_matrix_kdash(start, end);
 
-		vector<double> temp_sub_vector_upper_kth_row;
+		vector<double> temp_sub_vector_upper_kth_row(MATRIX_SIZE - 1 - k);
+		start = (*mat[k]).begin() + (k+1);
+		end = (*mat[k]).end();
+		vector<double> temp_sub_vector_mat_kth_row(start, end);
 		// starting a parallel section
 		#pragma omp parallel num_threads(NUM_THREADS)
 		{
@@ -159,20 +163,24 @@ int main(int argc, char *argv[])
 			for(int j=k+1; j<MATRIX_SIZE; j++)
 			{
 				(*lower[j])[k] = (*mat[j])[k]/max_element;
-				(*upper[k])[j] = (*mat[k])[j];
+				(*upper[k])[j] = temp_sub_vector_mat_kth_row[j - (k+1)];
 			}
+			// --------------------------------------------------------- barrier ------------------------------------------------------
 			#pragma omp single
 			{
+				// coping kth row of upper matrix: constant in next for loop
 				auto start = (*upper[k]).begin() + k+1;
 				auto end = (*upper[k]).end();
+				copy(start, end, temp_sub_vector_upper_kth_row.begin());
 			}
+			// --------------------------------------------------------- barrier -------------------------------------------------------
 			// finally updating the input matrix
 			#pragma omp for schedule(static, 4)
 			for(int i=k+1; i<MATRIX_SIZE; i++)
 			{
 				double operand1 = (*lower[i])[k];
 				for(int j=k+1; j<MATRIX_SIZE; j++)
-					(*mat[i])[j] += ((operand1 * (*upper[k])[j]) * (-1));
+					(*mat[i])[j] -= ((operand1 * temp_sub_vector_upper_kth_row[j-(k+1)]));
 			}
 		}
 	}
