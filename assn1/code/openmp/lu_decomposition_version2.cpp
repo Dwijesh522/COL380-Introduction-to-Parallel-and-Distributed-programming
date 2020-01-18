@@ -4,6 +4,7 @@
 #include<chrono>
 #include<time.h>
 #include<algorithm>
+#include<cmath>
 
 using namespace std;
 using namespace std::chrono;
@@ -15,13 +16,14 @@ int MATRIX_SIZE = 4;
 // Helper fuctions
 void print_matrix(vector<vector<double>* > mat, int r, int c);
 void print_vector(vector<int> permutation, int size);
+void print_vector_double(vector<double> vec, int r1, int r2);
 pair<int, double> get_maximum_element_index(vector<vector<double>* >& mat, int c, int r1, int r2);
 void print_error(vector<vector<double>*> &mat_dup, vector<int> &permutation, vector<vector<double>*> &lower, vector<vector<double>*> &upper);
 
 int main(int argc, char *argv[])
 {
 	// getting the current time
-	auto start = high_resolution_clock::now();
+	auto start_timer = high_resolution_clock::now();
 
 	// checking for correct command line input
 	if(argc < 3)
@@ -40,8 +42,7 @@ int main(int argc, char *argv[])
 	// declaring permutation matrix as vector of pointers to integers
 	vector<int> permutation(MATRIX_SIZE);
 
-	// seed the random number generator
-	srand48(time(0));											/// seed differently for each thread ###################
+	struct drand48_data buffers[NUM_THREADS]; // Each thread has a buffer corresponding to it
 
 	// ------------------------------------------------------------------------------------------
 	// ------------- sequential timing	: 3.5 sec (two dimensional matrix pointing to doubles)
@@ -50,6 +51,8 @@ int main(int argc, char *argv[])
 	// intializing all four matrices
 	#pragma omp parallel num_threads(NUM_THREADS)
 	{
+		// seed the random number generator
+		srand48_r((long int)time(0)+(long int)omp_get_thread_num(), &buffers[omp_get_thread_num()%NUM_THREADS]);											/// seed differently for each thread ###################
 		#pragma omp sections
 		{
 			#pragma omp section
@@ -85,9 +88,11 @@ int main(int argc, char *argv[])
 		{
 			for(int j=0; j<MATRIX_SIZE; j++)
 			{
-				double random_num = (drand48());
-				(*mat[i])[j] = random_num;
-				(*mat_dup[i])[j] = random_num;
+				#pragma omp critical										// data dependency
+				{
+					drand48_r( &buffers[omp_get_thread_num()%4], &((*mat[i])[j]) );
+					(*mat_dup[i])[j] = (*mat[i])[j];
+				}
 			}
 		}
 		// --------------------- only for debugging ----------------------------
@@ -123,20 +128,26 @@ int main(int argc, char *argv[])
 		// coping first (k-1) elements from kth row of lower triangular matrix because
 		// while swapping elements in the loop every time going to that position through
 		// pointers and copy the content into some temporary variable is time consuming
-		// instead copy the whole subvector content to a temp vector and use that in 
+		// instead copy the whole subvector content to a temp vector and use that in
 		// swapping elements. This will reduce order(n^2) instruction.
 		auto start = (*lower[k]).begin();
 		auto end = (*lower[k]).begin()+k;
-		vector<double> temp_sub_vector_lower_matrix(start, end);
+//		vector<double> temp_sub_vector_lower_matrix(start, end);
+		double temp_sub_vector_lower_matrix[k];
+		copy(start, end, temp_sub_vector_lower_matrix);
 
 		start = (*lower[k_dash]).begin();
 		end = (*lower[k_dash]).begin() + k;
-		vector<double> temp_sub_vector_lower_matrix_kdash(start, end);
+//		vector<double> temp_sub_vector_lower_matrix_kdash(start, end);
+		double temp_sub_vector_lower_matrix_kdash[k-1];
+		copy(start, end, temp_sub_vector_lower_matrix_kdash);
 
-		vector<double> temp_sub_vector_upper_kth_row(MATRIX_SIZE - 1 - k);
+		double temp_sub_vector_upper_kth_row[MATRIX_SIZE - 1 - k];
 		start = (*mat[k]).begin() + (k+1);
 		end = (*mat[k]).end();
-		vector<double> temp_sub_vector_mat_kth_row(start, end);
+//		vector<double> temp_sub_vector_mat_kth_row(start, end);
+		double temp_sub_vector_mat_kth_row[MATRIX_SIZE - k - 1];
+		copy(start, end, temp_sub_vector_mat_kth_row);
 		// starting a parallel section
 		#pragma omp parallel num_threads(NUM_THREADS)
 		{
@@ -154,8 +165,11 @@ int main(int argc, char *argv[])
 			#pragma omp for schedule(static, 4) nowait
 			for(int j=0; j<=k-1; j++)
 			{
-				(*lower[k])[j] = temp_sub_vector_lower_matrix_kdash[j];
-				(*lower[k_dash])[j] = temp_sub_vector_lower_matrix[j];
+				#pragma omp critical								// data dependency
+				{
+					(*lower[k])[j] = temp_sub_vector_lower_matrix_kdash[j];
+					(*lower[k_dash])[j] = temp_sub_vector_lower_matrix[j];
+				}
 			}
 			// updating fractions in lower triangular matrix
 			// and elements of upper triangular matrix
@@ -163,7 +177,10 @@ int main(int argc, char *argv[])
 			for(int j=k+1; j<MATRIX_SIZE; j++)
 			{
 				(*lower[j])[k] = (*mat[j])[k]/max_element;
-				(*upper[k])[j] = temp_sub_vector_mat_kth_row[j - (k+1)];
+				#pragma omp critical								// data dependency
+				{
+					(*upper[k])[j] = temp_sub_vector_mat_kth_row[j - (k+1)];
+				}
 			}
 			// --------------------------------------------------------- barrier ------------------------------------------------------
 			#pragma omp single
@@ -171,7 +188,7 @@ int main(int argc, char *argv[])
 				// coping kth row of upper matrix: constant in next for loop
 				auto start = (*upper[k]).begin() + k+1;
 				auto end = (*upper[k]).end();
-				copy(start, end, temp_sub_vector_upper_kth_row.begin());
+				copy(start, end, temp_sub_vector_upper_kth_row);
 			}
 			// --------------------------------------------------------- barrier -------------------------------------------------------
 			// finally updating the input matrix
@@ -185,24 +202,74 @@ int main(int argc, char *argv[])
 		}
 	}
 	// getting the end time
-	auto end = high_resolution_clock::now();
+	auto end_time = high_resolution_clock::now();
 	// get the duration
-	auto duration = duration_cast<microseconds>(end - start);
-	cout << "Time taken: " << duration.count() << " micro seconds" << endl;
+	auto duration_time = duration_cast<microseconds>(end_time - start_timer);
+	cout << "Time taken: " << duration_time.count() << " micro seconds" << endl;
+
+	// print_matrix(lower, MATRIX_SIZE, MATRIX_SIZE);
+	// print_matrix(upper, MATRIX_SIZE, MATRIX_SIZE);
+	// print_vector(permutation, MATRIX_SIZE);
+	// print_matrix(mat_dup, MATRIX_SIZE, MATRIX_SIZE);
+	print_error(mat_dup, permutation, lower, upper);
+	end_time = high_resolution_clock::now();
+	duration_time = duration_cast<microseconds>(end_time - start_timer);
+	cout << "Time taken: " << duration_time.count() << " micro seconds" << endl;
 
 //	print_matrix(lower, MATRIX_SIZE, MATRIX_SIZE);
 //	print_matrix(upper, MATRIX_SIZE, MATRIX_SIZE);
 //	print_vector(permutation, MATRIX_SIZE);
-//	print_matrix(mat, MATRIX_SIZE, MATRIX_SIZE);
-
 	return 0;
 }
 // This function takes original input, permutation matrix, lower and upper triangular matrix as input and calculates the error
-// First rearranges the original input matrix a/c to permutation matrix. Then multiplies lower and upper triangular matrix and 
+// First rearranges the original input matrix a/c to permutation matrix. Then multiplies lower and upper triangular matrix and
 // subtracts the result with rearranged matrix. and prints the error.
 void print_error(vector<vector<double>*> &mat_dup, vector<int> &permutation, vector<vector<double>*> &lower, vector<vector<double>*> &upper)
 {
+	//Obtaining the permuted matrix
+	vector<vector<double>*> permuted_mat;
+	for(int i=0; i<MATRIX_SIZE; i++)
+	{
+		permuted_mat.push_back(mat_dup[permutation[i]]);
+	}
 
+	// The error value is the sum of L2 norms of each of the column vectors
+	double error_value = 0;
+	//Subtracting LU from A and finding the error value
+	#pragma omp parallel for num_threads(4) schedule(static, 4)
+	for(int j=0; j<MATRIX_SIZE; j++)
+	{
+		vector<double> temp_column, temp_row;
+		double squared_sum =0;
+		for(int i=0; i<MATRIX_SIZE; i++)
+		{
+			double temp_value = (*upper[i])[j];
+			temp_column.push_back(temp_value);
+		}
+		for(int i=0; i<MATRIX_SIZE; i++)
+		{
+			temp_row = *lower[i];
+			double lu_value = 0;
+			for(int k=0; k<MATRIX_SIZE; k++)
+			{
+				lu_value += temp_row[k]*temp_column[k];
+			}
+			//cout << i <<" "<<j <<" "<<lu_value<<endl;
+			squared_sum += pow ( ((*permuted_mat[i])[j] - lu_value), 2.0);
+		}
+		#pragma omp critical
+		error_value += sqrt(squared_sum);
+	}
+
+	printf ("Error value (The L2,1 norm of the residual matrix) is %lf\n",error_value);
+
+}
+
+void print_vector_double(vector<double> vec, int r1, int r2)
+{
+	for(int i=r1; i<=r2; i++)
+		cout << vec[i] << " ";
+	cout << endl << endl;
 }
 
 // This function finds the maximum element from a fix column and between raw index r1 nad r2
@@ -216,17 +283,18 @@ void print_error(vector<vector<double>*> &mat_dup, vector<int> &permutation, vec
 // ------------------------------------------------------------------------------------------------------
 pair<int, double> get_maximum_element_index(vector<vector<double>* > &mat, int c, int r1, int r2)
 {
-	double max_element=0;
+	double max_element=0, pos_max_element=0;
 	int index=-1;
 	for(int i= r1; i<= r2; i++)
 	{
 		if(abs((*mat[i])[c]) > max_element)
 		{
 			max_element = abs((*mat[i])[c]);
+			pos_max_element = (*mat[i])[c];
 			index = i;
 		}
 	}
-	return make_pair(index, max_element);
+	return make_pair(index, pos_max_element);
 }
 
 void print_matrix(vector<vector<double>* > mat, int r, int c)

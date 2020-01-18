@@ -4,7 +4,6 @@
 #include<chrono>
 #include<time.h>
 #include<algorithm>
-#include<cmath>
 
 using namespace std;
 using namespace std::chrono;
@@ -41,7 +40,8 @@ int main(int argc, char *argv[])
 	// declaring permutation matrix as vector of pointers to integers
 	vector<int> permutation(MATRIX_SIZE);
 
-	struct drand48_data buffers[NUM_THREADS]; // Each thread has a buffer corresponding to it
+	// seed the random number generator
+	srand48(time(0));											/// seed differently for each thread ###################
 
 	// ------------------------------------------------------------------------------------------
 	// ------------- sequential timing	: 3.5 sec (two dimensional matrix pointing to doubles)
@@ -50,8 +50,6 @@ int main(int argc, char *argv[])
 	// intializing all four matrices
 	#pragma omp parallel num_threads(NUM_THREADS)
 	{
-		// seed the random number generator
-		srand48_r((long int)time(0)+(long int)omp_get_thread_num(), &buffers[omp_get_thread_num()%NUM_THREADS]);											/// seed differently for each thread ###################
 		#pragma omp sections
 		{
 			#pragma omp section
@@ -87,8 +85,9 @@ int main(int argc, char *argv[])
 		{
 			for(int j=0; j<MATRIX_SIZE; j++)
 			{
-				drand48_r( &buffers[omp_get_thread_num()%4], &((*mat[i])[j]) );
-				(*mat_dup[i])[j] = (*mat[i])[j];
+				double random_num = (drand48());
+				(*mat[i])[j] = random_num;
+				(*mat_dup[i])[j] = random_num;
 			}
 		}
 		// --------------------- only for debugging ----------------------------
@@ -104,6 +103,8 @@ int main(int argc, char *argv[])
 		// ---------------------------------------------------------------------
 	}
 
+//	double start_omp = omp_get_wtime();
+
 	// outermost loop: non parallelizable due to data dependecies across iterations
 	for(int k=0; k< MATRIX_SIZE; k++)
 	{
@@ -113,7 +114,7 @@ int main(int argc, char *argv[])
 		double max_element = max_of_column.second;
 		// if singular matrix then stop
 		if(k_dash == -1)	{ cout << "Singular matrix.\n"; return 0;}
-
+		
 		// swapping k and k_dash row of matrix mat
 		// This operation can not be parallelized because second last for loop assumes
 		// two rows are swapped. If we do it parallely then second last for loop may
@@ -124,7 +125,7 @@ int main(int argc, char *argv[])
 		// coping first (k-1) elements from kth row of lower triangular matrix because
 		// while swapping elements in the loop every time going to that position through
 		// pointers and copy the content into some temporary variable is time consuming
-		// instead copy the whole subvector content to a temp vector and use that in
+		// instead copy the whole subvector content to a temp vector and use that in 
 		// swapping elements. This will reduce order(n^2) instruction.
 		auto start = (*lower[k]).begin();
 		auto end = (*lower[k]).begin()+k;
@@ -185,59 +186,29 @@ int main(int argc, char *argv[])
 			}
 		}
 	}
+
+//	double end_omp = omp_get_wtime();
+//	double duration_omp = (double)(end_omp -start_omp);
+//	cout << duration_omp << endl;
+
 	// getting the end time
 	auto end = high_resolution_clock::now();
 	// get the duration
 	auto duration = duration_cast<microseconds>(end - start);
 	cout << "Time taken: " << duration.count() << " micro seconds" << endl;
 
-	// print_matrix(lower, MATRIX_SIZE, MATRIX_SIZE);
-	// print_matrix(upper, MATRIX_SIZE, MATRIX_SIZE);
-	// print_vector(permutation, MATRIX_SIZE);
-	// print_matrix(mat_dup, MATRIX_SIZE, MATRIX_SIZE);
-	// print_error(mat_dup, permutation, lower, upper);
+//	print_matrix(lower, MATRIX_SIZE, MATRIX_SIZE);
+//	print_matrix(upper, MATRIX_SIZE, MATRIX_SIZE);
+//	print_vector(permutation, MATRIX_SIZE);
+//	print_matrix(mat, MATRIX_SIZE, MATRIX_SIZE);
 
 	return 0;
 }
 // This function takes original input, permutation matrix, lower and upper triangular matrix as input and calculates the error
-// First rearranges the original input matrix a/c to permutation matrix. Then multiplies lower and upper triangular matrix and
+// First rearranges the original input matrix a/c to permutation matrix. Then multiplies lower and upper triangular matrix and 
 // subtracts the result with rearranged matrix. and prints the error.
 void print_error(vector<vector<double>*> &mat_dup, vector<int> &permutation, vector<vector<double>*> &lower, vector<vector<double>*> &upper)
 {
-	//Obtaining the permuted matrix
-	vector<vector<double>*> permuted_mat;
-	for(int i=0; i<MATRIX_SIZE; i++)
-	{
-		permuted_mat.push_back(mat_dup[permutation[i]]);
-	}
-
-	// The error value is the sum of L2 norms of each of the column vectors
-	double error_value = 0;
-	//Subtracting LU from A and finding the error value
-	for(int j=0; j<MATRIX_SIZE; j++)
-	{
-		vector<double> temp_column, temp_row;
-		double squared_sum =0;
-		for(int i=0; i<MATRIX_SIZE; i++)
-		{
-			double temp_value = (*upper[i])[j];
-			temp_column.push_back(temp_value);
-		}
-		for(int i=0; i<MATRIX_SIZE; i++)
-		{
-			temp_row = *lower[i];
-			double lu_value = 0;
-			for(int k=0; k<MATRIX_SIZE; k++)
-			{
-				lu_value += temp_row[k]*temp_column[k];
-			}
-			//cout << i <<" "<<j <<" "<<lu_value<<endl;
-			squared_sum += pow ( ((*permuted_mat[i])[j] - lu_value), 2.0);
-		}
-		error_value += sqrt(squared_sum);
-	}
-
-	printf ("Error value (The L2,1 norm of the residual matrix) is %0.5f\n",error_value);
 
 }
 
