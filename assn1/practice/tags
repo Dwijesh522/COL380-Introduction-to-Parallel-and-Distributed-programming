@@ -1,16 +1,30 @@
 !_TAG_FILE_SORTED	2	/0=unsorted, 1=sorted, 2=foldcase/
+ans	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/pthreads_find_sum.cpp	/^	int *ans;$/;"	m	language:C++	struct:data	file:
+arr	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/pthreads_find_sum.cpp	/^	int *arr, num_threads, offset, size;$/;"	m	language:C++	struct:data	file:
 atomic	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^void atomic()$/;"	f	language:C++
 collapse	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^void collapse(int vec_size, int id)$/;"	f	language:C++
 critical	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^void critical(int id, int size)$/;"	f	language:C++
+data	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/pthreads_find_sum.cpp	/^	data(int size, int num_threads, int offset)$/;"	f	language:C++	struct:data
+data	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/pthreads_find_sum.cpp	/^struct data$/;"	s	language:C++	file:
+find_sum	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/pthreads_find_sum.cpp	/^void *find_sum(void *array);$/;"	p	language:C++	file:
+find_sum	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/pthreads_find_sum.cpp	/^void *find_sum(void *data_pointer)$/;"	f	language:C++
 fun1	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/seq_loop.cpp	/^float fun1(int size)$/;"	f	language:C++
 fun2	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/seq_loop.cpp	/^float fun2(int size)$/;"	f	language:C++
+gettid	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/pthreads_find_sum.cpp	5;"	d	language:C++	file:
 heirarchical_pragmas	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^void heirarchical_pragmas()$/;"	f	language:C++
+main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/pthreads_find_sum.cpp	/^int main()$/;"	f	language:C++
+main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/seq_find_sum.cpp	/^int main()$/;"	f	language:C++
 main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/seq_loop.cpp	/^int main()$/;"	f	language:C++
 main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^int main()$/;"	f	language:C++
 no_wait	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^void no_wait(int vec_size, int id)$/;"	f	language:C++
+num_threads	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/pthreads_find_sum.cpp	/^	int *arr, num_threads, offset, size;$/;"	m	language:C++	struct:data	file:
 NUM_THREADS	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^int NUM_THREADS = 4;$/;"	v	language:C++
+offset	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/pthreads_find_sum.cpp	/^	int *arr, num_threads, offset, size;$/;"	m	language:C++	struct:data	file:
 ordered_clause	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^void ordered_clause(int times, int id)$/;"	f	language:C++
+print_hello_world	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/pthreads_find_sum.cpp	/^void *print_hello_world(void *message);$/;"	p	language:C++	file:
+print_hello_world	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/pthreads_find_sum.cpp	/^void *print_hello_world(void *ptr_to_message)$/;"	f	language:C++
 print_matrix	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^void print_matrix(vector<vector<int>> mat, int r, int c)$/;"	f	language:C++
 reduction	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^void reduction(int vec_size, int id)$/;"	f	language:C++
 sections_clause	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^void sections_clause(int vec_size, int id)$/;"	f	language:C++
+size	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/pthreads_find_sum.cpp	/^	int *arr, num_threads, offset, size;$/;"	m	language:C++	struct:data	file:
 vector_of_pointers	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^vector<int *> vector_of_pointers(int n)$/;"	f	language:C++

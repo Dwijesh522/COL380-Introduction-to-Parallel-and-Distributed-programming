@@ -205,7 +205,7 @@ int main(int argc, char *argv[])
 	auto end_time = high_resolution_clock::now();
 	// get the duration
 	auto duration_time = duration_cast<microseconds>(end_time - start_timer);
-	cout << "Time taken: " << duration_time.count() << " micro seconds" << endl;
+	cout << "Time taken: " << duration_time.count()/1000000.0 << " seconds" << endl;
 
 	// print_matrix(lower, MATRIX_SIZE, MATRIX_SIZE);
 	// print_matrix(upper, MATRIX_SIZE, MATRIX_SIZE);
@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
 	print_error(mat_dup, permutation, lower, upper);
 	end_time = high_resolution_clock::now();
 	duration_time = duration_cast<microseconds>(end_time - start_timer);
-	cout << "Time taken: " << duration_time.count() << " micro seconds" << endl;
+	cout << "Time taken: " << duration_time.count()/1000000.0 << " seconds" << endl;
 
 //	print_matrix(lower, MATRIX_SIZE, MATRIX_SIZE);
 //	print_matrix(upper, MATRIX_SIZE, MATRIX_SIZE);
