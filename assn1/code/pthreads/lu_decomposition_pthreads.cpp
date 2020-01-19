@@ -31,20 +31,23 @@ void print_vector(int *vec, int size);
 // for parallel blocks
 struct data_bin
 {
-	double **mat, **lower, **upper;
+	double **mat, **lower, **upper, **mat_dup;
 	int *permutation;
 	data_bin()
 	{
 		// all matrices will point to corresponding array of MATRIX_SIZE size.
 		// later each element of these array will point to corresponding array of double elements
-		mat = 	(double **)(new double[MATRIX_SIZE]);
-		lower = (double **)(new double[MATRIX_SIZE]);
-		upper = (double **)(new double[MATRIX_SIZE]);
+		mat = 	  (double **)(new double[MATRIX_SIZE]);
+		mat_dup = (double **)(new double[MATRIX_SIZE]);
+		lower =   (double **)(new double[MATRIX_SIZE]);
+		upper =   (double **)(new double[MATRIX_SIZE]);
 		permutation = new int[MATRIX_SIZE];
+		
 		// allocate memory to each array elements to create two dimensional matrices
 		for(int i=0; i<MATRIX_SIZE; i++)
 		{
 			mat[i] = new double[MATRIX_SIZE];
+			mat_dup[i] = new double[MATRIX_SIZE];
 			lower[i] = new double[MATRIX_SIZE];
 			upper[i] = new double[MATRIX_SIZE];
 			lower[i][i] = 1;
@@ -70,7 +73,7 @@ int main(int argc, char *argv[])
 	// data_bin has all matrices within it.
 	data_bin data = data_bin();
 	data_bin *data_pointer = &data;
-	
+
 	// implementing the following for intializing mat elements
 	// #pragma omp parallel for schedule(static) num_threads(NUM_THREADS)
 	pthread_t threads[NUM_THREADS];
@@ -85,6 +88,7 @@ int main(int argc, char *argv[])
 	cout << "Time taken: " << duration_time.count()/1000000.0 << " seconds" << endl;	
 
 //	print_matrix(data.mat, MATRIX_SIZE);
+//	print_matrix(data.mat_dup, MATRIX_SIZE);
 	
 	exit(0);
 }
@@ -97,8 +101,13 @@ void *init(void *arg)
 	// retrieving important data structures
 	data_bin *data_pointer = (data_bin *)arg;
 	double **mat = data_pointer->mat;
+	double **mat_dup = data_pointer->mat_dup;
 	// getting current thread's thread_id
 	int tid = syscall(SYS_gettid) % NUM_THREADS;
+
+	// creating buffer for each threads
+	struct drand48_data buffer;
+	srand48_r((long int)time(0)+(long int)tid, &buffer);
 	// figuring out the which iterations are allotted to this thread
 	// ceiling is important. consider matrix_size=21, NUM_THREADS=4 then 1 iteration may be left to be executed without taking ceiling
 	// it is used to incorporate ramainder iterations
@@ -107,7 +116,11 @@ void *init(void *arg)
 	end_iter_index = end_iter_index >= MATRIX_SIZE ? (MATRIX_SIZE-1) : end_iter_index;
 
 	for(int i=start_iter_index; i<= end_iter_index; i++)
-		for(int j=0; j<MATRIX_SIZE; j++)	mat[i][j] = i;
+		for(int j=0; j<MATRIX_SIZE; j++)
+		{
+			drand48_r( &buffer, &(mat[i][j]) );
+			mat_dup[i][j] = mat[i][j];
+		}
 }
 
 void print_matrix(double **mat, int size)
