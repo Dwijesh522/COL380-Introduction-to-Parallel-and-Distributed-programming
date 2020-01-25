@@ -4,7 +4,6 @@
 #include<time.h>
 #include<algorithm>
 #include<cmath>
-#include<pthread.h>
 #include<cstdlib>
 #include<cmath>
 #include <unistd.h>
@@ -14,18 +13,16 @@
 using namespace std;
 using namespace std::chrono;
 
-pthread_mutex_t mutex1 = PTHREAD_MUTEX_INITIALIZER;
-pthread_barrier_t   barrier; // the barrier synchronization object
 // default number of threads = 4
-int NUM_THREADS = 4;
+const int NUM_THREADS = 1;
 int MATRIX_SIZE = 4;
 // to implement static scheduling with chunk_size = 4
 const int CHUNK_SIZE = 4;
 int shared_counter = 0;
 
 // -------------- thread function declaration --------------//
-void *init(void *data);
-void *processing(void *data);
+void init(void *data);
+void processing(void *data);
 
 // -------------- Helper fuction declaration ---------------//
 int get_maximum_element_index(double**, int, int, int);
@@ -83,33 +80,23 @@ void print_error(data_bin* data);
 
 int main(int argc, char *argv[])
 {
-	pthread_barrier_init(&barrier, NULL, NUM_THREADS);
 	// getting the current time
 	auto start_timer = high_resolution_clock::now();
 
 	// checking for correct command line input
-	if(argc < 3)
+	if(argc < 2)
 	{
-		cout << "Command line input expected in one of the following format.\n./a.out <size_of_matrix> <num_threads>\nmake A=<size_of_matrix> B=<num_threads>\n";
+		cout << "Command line input expected in one of the following format.\n./a.out <size_of_matrix>\n";
 		return 0;
 	}
 
 	sscanf(argv[1], "%d", &MATRIX_SIZE);
-	sscanf(argv[2], "%d", &NUM_THREADS);
 
 	// data_bin has all matrices within it.
 	data_bin data = data_bin();
 	data_bin *data_pointer = &data;
 
-	// implementing the following for intializing mat elements
-	// #pragma omp parallel for schedule(static) num_threads(NUM_THREADS)
-	pthread_barrier_init(&barrier, NULL, NUM_THREADS);
-	pthread_t threads[NUM_THREADS];
-	for(int i=0; i<NUM_THREADS; i++)
-		pthread_create(&threads[i], NULL, init, (void *)data_pointer);
-	// adding barrier
-	for(int i=0; i<NUM_THREADS; i++)
-		pthread_join(threads[i], NULL);
+	init((void *)data_pointer);
 
 	for(int k=0; k<MATRIX_SIZE; k++)
 	{
@@ -133,11 +120,8 @@ int main(int argc, char *argv[])
 		//creating threads for parallel computations
 		data_processing data_p = data_processing(&data, k, k_dash);
 		data_processing *data_pointer_p = &data_p;
-		for(int i=0; i<NUM_THREADS; i++)
-			pthread_create(&threads[i], NULL, processing, (void *)data_pointer_p);
+		processing((void *)data_pointer_p);
 		//joining threads
-		for(int i=0; i<NUM_THREADS; i++)
-			pthread_join(threads[i], NULL);
 
 		// testing
 		if(not upper_mat_compatibility(data.upper, data.mat, k))
@@ -175,7 +159,7 @@ int main(int argc, char *argv[])
 // implementing the following for intializing mat elements
 // #pragma omp parallel for schedule(static) num_threads(NUM_THREADS)
 // initialize mat matrix element
-void *init(void *arg)
+void init(void *arg)
 {
 	// retrieving important data structures
 	data_bin *data_pointer = (data_bin *)arg;
@@ -183,7 +167,7 @@ void *init(void *arg)
 	double **mat_dup = data_pointer->mat_dup;
 	int* permutation = data_pointer->permutation;
 	// getting current thread's thread_id
-	int tid = syscall(SYS_gettid) % NUM_THREADS;
+	int tid = 0;
 
 	// creating buffer for each threads
 	struct drand48_data buffer;
@@ -207,7 +191,7 @@ void *init(void *arg)
 	}
 }
 
-void *processing(void *arg)
+void processing(void *arg)
 {
 	// retrieving important data structures
 	data_processing *data_pointer_p = (data_processing *)arg;
@@ -218,9 +202,7 @@ void *processing(void *arg)
 	int k_dash = data_pointer_p->k_dash;
 
 	// getting current thread's thread_id
-	pthread_mutex_lock( &mutex1 );
-	int tid = shared_counter++;
-	pthread_mutex_unlock( &mutex1 );
+	int tid = 0;
 	//calculating start and end indices
 	int ceil_1 = ceil( ( (k*(1.0)) / NUM_THREADS ) );
 	int ceil_2 = ceil( ( ((MATRIX_SIZE-k-1)*(1.0)) / NUM_THREADS ) );
@@ -243,8 +225,6 @@ void *processing(void *arg)
 		lower[i][k] = mat[i][k]/u_k_k;
 		upper[k][i] = mat[k][i];
 	}
-	//------------BARRIER-------------------------------------------
-	pthread_barrier_wait(&barrier);
 	for(int i=start_iter_index_2; i<end_iter_index_2; i++)
 	{
 		double operand1 = lower[i][k];

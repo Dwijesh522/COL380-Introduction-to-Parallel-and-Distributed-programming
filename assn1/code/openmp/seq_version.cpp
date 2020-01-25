@@ -37,62 +37,41 @@ int main(int argc, char *argv[])
 
 	// below format will help us parallelize initialization of matrices.
 	// declaring matrices as two dimensional vector of pointer to doubles
+	//vector<vector<double>* > mat(MATRIX_SIZE, new vector<double>(MATRIX_SIZE, 0));
 	vector<vector<double>* > mat, upper, lower, mat_dup;
 	// declaring permutation matrix as vector of pointers to integers
 	vector<int> permutation(MATRIX_SIZE);
 
-	struct drand48_data buffers[NUM_THREADS]; // Each thread has a buffer corresponding to it
+	struct drand48_data buffers; // Each thread has a buffer corresponding to it
 
 	// ------------------------------------------------------------------------------------------
 	// ------------- sequential timing	: 3.5 sec (two dimensional matrix pointing to doubles)
 	// ------------- parallel timing	: 2.9 sec (two dimensional matrix pointing to doubles)
 	// ------------------------------------------------------------------------------------------
 	// intializing all four matrices
-	#pragma omp parallel num_threads(NUM_THREADS)
+	// seed the random number generator
+	srand48_r((long int)time(0), &buffers);	/// seed differently for each thread ###################
+	for(int i=0; i<MATRIX_SIZE; i++)
 	{
-		// seed the random number generator
-		srand48_r((long int)time(0)+(long int)omp_get_thread_num(), &buffers[omp_get_thread_num()%NUM_THREADS]);											/// seed differently for each thread ###################
-		#pragma omp sections
+		mat.push_back(new vector<double>(MATRIX_SIZE, (0)));
+		mat_dup.push_back(new vector<double>(MATRIX_SIZE, (0)));
+	}
+	for(int i=0; i<MATRIX_SIZE; i++)
+		upper.push_back(new vector<double>(MATRIX_SIZE, (0)));
+	for(int i=0; i<MATRIX_SIZE; i++)
+	{
+		lower.push_back(new vector<double>(MATRIX_SIZE, (0)));
+		(*lower[i])[i] = (1);
+	}
+	for(int i=0; i<MATRIX_SIZE; i++)
+		permutation[i] = i;
+	// Initializing mat: 64000000 elements with random doubleing point values
+	for(int i=0; i<MATRIX_SIZE; i++)
+	{
+		for(int j=0; j<MATRIX_SIZE; j++)
 		{
-			#pragma omp section
-			{
-				for(int i=0; i<MATRIX_SIZE; i++)
-				{
-					mat.push_back(new vector<double>(MATRIX_SIZE, (0)));
-					mat_dup.push_back(new vector<double>(MATRIX_SIZE, (0)));
-				}
-			}
-			#pragma omp section
-			{
-				for(int i=0; i<MATRIX_SIZE; i++)
-					upper.push_back(new vector<double>(MATRIX_SIZE, (0)));
-			}
-			#pragma omp section
-			{
-				for(int i=0; i<MATRIX_SIZE; i++)
-				{
-					lower.push_back(new vector<double>(MATRIX_SIZE, (0)));
-					(*lower[i])[i] = (1);
-				}
-			}
-			#pragma omp section
-			{
-				for(int i=0; i<MATRIX_SIZE; i++)
-					permutation[i] = i;
-			}
-		}
-		// Initializing mat: 64000000 elements with random doubleing point values
-		#pragma omp for schedule(static, 4) collapse(2)
-		for(int i=0; i<MATRIX_SIZE; i++)
-		{
-			for(int j=0; j<MATRIX_SIZE; j++)
-			{
-				#pragma omp critical										// data dependency
-				{
-					drand48_r( &buffers[omp_get_thread_num()%4], &((*mat[i])[j]) );
-					(*mat_dup[i])[j] = (*mat[i])[j];
-				}
-			}
+			drand48_r( &buffers, &((*mat[i])[j]) );
+			(*mat_dup[i])[j] = (*mat[i])[j];
 		}
 	}
 
@@ -125,7 +104,7 @@ int main(int argc, char *argv[])
 
 		start = (*lower[k_dash]).begin();
 		end = (*lower[k_dash]).begin() + k;
-		double temp_sub_vector_lower_matrix_kdash[k];
+		double temp_sub_vector_lower_matrix_kdash[k-1];
 		copy(start, end, temp_sub_vector_lower_matrix_kdash);
 
 		double temp_sub_vector_upper_kth_row[MATRIX_SIZE - 1 - k];
@@ -134,56 +113,35 @@ int main(int argc, char *argv[])
 		double temp_sub_vector_mat_kth_row[MATRIX_SIZE - k - 1];
 		copy(start, end, temp_sub_vector_mat_kth_row);
 		// starting a parallel section
-		#pragma omp parallel num_threads(NUM_THREADS)
+		// swapping k and k_dash elements of permutation vector
+		int temp = permutation[k];
+		permutation[k] = permutation[k_dash];
+		permutation[k_dash] = temp;
+		// updating upper triangular matrix's (k, k) entry
+		(*upper[k])[k] = max_element;
+		// swapping lower triangular matrix elements
+		for(int j=0; j<=k-1; j++)
 		{
-			// only master threads completes the following work
-			#pragma omp master
-			{
-				// swapping k and k_dash elements of permutation vector
-				int temp = permutation[k];
-				permutation[k] = permutation[k_dash];
-				permutation[k_dash] = temp;
-				// updating upper triangular matrix's (k, k) entry
-				(*upper[k])[k] = max_element;
-			}
-			// swapping lower triangular matrix elements
-			#pragma omp for schedule(static, 4) nowait
-			for(int j=0; j<=k-1; j++)
-			{
-				#pragma omp critical								// data dependency
-				{
-					(*lower[k])[j] = temp_sub_vector_lower_matrix_kdash[j];
-					(*lower[k_dash])[j] = temp_sub_vector_lower_matrix[j];
-				}
-			}
-			// updating fractions in lower triangular matrix
-			// and elements of upper triangular matrix
-			#pragma omp for schedule(static, 4)
+			(*lower[k])[j] = temp_sub_vector_lower_matrix_kdash[j];
+			(*lower[k_dash])[j] = temp_sub_vector_lower_matrix[j];
+		}
+		// updating fractions in lower triangular matrix
+		// and elements of upper triangular matrix
+		for(int j=k+1; j<MATRIX_SIZE; j++)
+		{
+			(*lower[j])[k] = (*mat[j])[k]/max_element;
+			(*upper[k])[j] = temp_sub_vector_mat_kth_row[j - (k+1)];
+		}
+		// coping kth row of upper matrix: constant in next for loop
+		start = (*upper[k]).begin() + k+1;
+		end = (*upper[k]).end();
+		copy(start, end, temp_sub_vector_upper_kth_row);
+		// finally updating the input matrix
+		for(int i=k+1; i<MATRIX_SIZE; i++)
+		{
+			double operand1 = (*lower[i])[k];
 			for(int j=k+1; j<MATRIX_SIZE; j++)
-			{
-				(*lower[j])[k] = (*mat[j])[k]/max_element;
-				#pragma omp critical								// data dependency
-				{
-					(*upper[k])[j] = temp_sub_vector_mat_kth_row[j - (k+1)];
-				}
-			}
-			// --------------------------------------------------------- barrier ------------------------------------------------------
-			#pragma omp single
-			{
-				// coping kth row of upper matrix: constant in next for loop
-				auto start = (*upper[k]).begin() + k+1;
-				auto end = (*upper[k]).end();
-				copy(start, end, temp_sub_vector_upper_kth_row);
-			}
-			// --------------------------------------------------------- barrier -------------------------------------------------------
-			// finally updating the input matrix
-			#pragma omp for schedule(static, 4)
-			for(int i=k+1; i<MATRIX_SIZE; i++)
-			{
-				double operand1 = (*lower[i])[k];
-				for(int j=k+1; j<MATRIX_SIZE; j++)
-					(*mat[i])[j] -= ((operand1 * temp_sub_vector_upper_kth_row[j-(k+1)]));
-			}
+				(*mat[i])[j] -= ((operand1 * temp_sub_vector_upper_kth_row[j-(k+1)]));
 		}
 	}
 	// getting the end time
@@ -191,6 +149,7 @@ int main(int argc, char *argv[])
 	// get the duration
 	auto duration_time = duration_cast<microseconds>(end_time - start_timer);
 	cout << "Time taken: " << duration_time.count()/1000000.0 << " seconds" << endl;
+
 	print_error(mat_dup, permutation, lower, upper);
 	end_time = high_resolution_clock::now();
 	duration_time = duration_cast<microseconds>(end_time - start_timer);
@@ -228,7 +187,10 @@ void print_error(vector<vector<double>*> &mat_dup, vector<int> &permutation, vec
 			temp_row = *lower[i];
 			double lu_value = 0;
 			for(int k=0; k<MATRIX_SIZE; k++)
+			{
 				lu_value += temp_row[k]*temp_column[k];
+			}
+			//cout << i <<" "<<j <<" "<<lu_value<<endl;
 			squared_sum += pow ( ((*permuted_mat[i])[j] - lu_value), 2.0);
 		}
 		#pragma omp critical
