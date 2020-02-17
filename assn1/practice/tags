@@ -16,6 +16,7 @@ main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-
 main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/seq_find_sum.cpp	/^int main()$/;"	f	language:C++
 main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/seq_loop.cpp	/^int main()$/;"	f	language:C++
 main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^int main()$/;"	f	language:C++
+main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/valgrind.cpp	/^int main()$/;"	f	language:C++
 no_wait	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^void no_wait(int vec_size, int id)$/;"	f	language:C++
 num_threads	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/pthreads_find_sum.cpp	/^	int *arr, num_threads, offset, size;$/;"	m	language:C++	struct:data	file:
 NUM_THREADS	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn1/practice/tutorial.cpp	/^int NUM_THREADS = 4;$/;"	v	language:C++

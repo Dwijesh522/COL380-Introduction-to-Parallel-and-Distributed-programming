@@ -1,0 +1,10 @@
+!_TAG_FILE_SORTED	2	/0=unsorted, 1=sorted, 2=foldcase/
+main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn2/practice/hello_mpi.c	/^int main(int argc, char**argv)$/;"	f	language:C++
+main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn2/practice/mpi_bcast.c	/^int main()$/;"	f	language:C++
+main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn2/practice/mpi_scatter_gather.c	/^int main()$/;"	f	language:C++
+main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn2/practice/mpi_status.c	/^int main()$/;"	f	language:C++
+main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn2/practice/point_to_point_comm.c	/^int main()$/;"	f	language:C++
+main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn2/practice/probe.c	/^int main()$/;"	f	language:C++
+main	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn2/practice/send_recv.c	/^int main()$/;"	f	language:C++
+MAX_COUNT	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn2/practice/mpi_status.c	/^const int MAX_COUNT = 100;$/;"	v	language:C++
+STEPS_LIMIT	/home/dwijesh/Documents/sem6/par/assns/COL380-Introduction-to-Parallel-and-Distributed-programming/assn2/practice/point_to_point_comm.c	/^const int STEPS_LIMIT = 100;$/;"	v	language:C++
