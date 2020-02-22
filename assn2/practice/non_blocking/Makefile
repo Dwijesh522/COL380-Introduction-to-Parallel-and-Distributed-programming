@@ -1,3 +1,3 @@
 run:
 	mpicc send_recv.c
-	mpirun -n 2 ./a.out
+	mpirun -n 4 ./a.out
