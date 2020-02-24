@@ -65,6 +65,7 @@ int main()
 		printf("Starting par multiplication...\n");
 		
 		// let other process know n, m, p
+		time_par = clock();
 		for(int i=1; i<p; i++)
 		{
 			int temp_par[3];
@@ -156,7 +157,6 @@ int main()
 	
 		
 	// ----------------------------------------------------- block multiplication ---------------------------------------------------------
-	time_par = clock();
 	for(int i=0; i<sqrt_p; i++)
 	{
 		seq_matrix_multiplication(A, B, C, (n/sqrt_p), (m/sqrt_p));
@@ -167,7 +167,6 @@ int main()
 		MPI_Cart_shift(MPI_COMM_WORLD_2D, 0, -1, &rank_source, &rank_dest);
 		MPI_Sendrecv_replace(B, (m/sqrt_p)*(n/sqrt_p), MPI_DOUBLE, rank_dest, 0, rank_source, 0, MPI_COMM_WORLD_2D, MPI_STATUS_IGNORE);
 	}
-	time_par = clock() - time_par;
 	//-------------------------------------------------------------------------------------------------------------------------------------
 	// +----------------------------------------------------------------------------------------------------+
 	// |			At this point processes have calculated their own blocked ans 			|
@@ -202,6 +201,7 @@ int main()
 		for(int i=0; i<n/sqrt_p; i++)
 			for(int j=0; j<n/sqrt_p; j++)
 				ans[ i*n + j ] = C[i*(n/sqrt_p) + j];
+		time_par = clock() - time_par;
 		free(C);
 	}
 	else

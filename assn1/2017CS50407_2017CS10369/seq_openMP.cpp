@@ -4,6 +4,7 @@
 #include<chrono>
 #include<time.h>
 #include<algorithm>
+#include"read_write.h"
 #include<cmath>
 
 using namespace std;
@@ -35,6 +36,7 @@ int main(int argc, char *argv[])
 	sscanf(argv[1], "%d", &MATRIX_SIZE);
 	sscanf(argv[2], "%d", &NUM_THREADS);
 
+
 	// below format will help us parallelize initialization of matrices.
 	// declaring matrices as two dimensional vector of pointer to doubles
 	//vector<vector<double>* > mat(MATRIX_SIZE, new vector<double>(MATRIX_SIZE, 0));
@@ -51,9 +53,13 @@ int main(int argc, char *argv[])
 	// intializing all four matrices
 	// seed the random number generator
 	srand48_r((long int)time(0), &buffers);	/// seed differently for each thread ###################
+
+	string filename = argv[3];
+	mat = read_matrix(filename, MATRIX_SIZE);
+
 	for(int i=0; i<MATRIX_SIZE; i++)
 	{
-		mat.push_back(new vector<double>(MATRIX_SIZE, (0)));
+//		mat.push_back(new vector<double>(MATRIX_SIZE, (0)));
 		mat_dup.push_back(new vector<double>(MATRIX_SIZE, (0)));
 	}
 	for(int i=0; i<MATRIX_SIZE; i++)
@@ -70,7 +76,7 @@ int main(int argc, char *argv[])
 	{
 		for(int j=0; j<MATRIX_SIZE; j++)
 		{
-			drand48_r( &buffers, &((*mat[i])[j]) );
+//			drand48_r( &buffers, &((*mat[i])[j]) );
 			(*mat_dup[i])[j] = (*mat[i])[j];
 		}
 	}

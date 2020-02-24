@@ -5,6 +5,7 @@
 #include<time.h>
 #include<algorithm>
 #include<cmath>
+#include"read_write.h"
 
 using namespace std;
 using namespace std::chrono;
@@ -43,6 +44,10 @@ int main(int argc, char *argv[])
 
 	struct drand48_data buffers[NUM_THREADS]; // Each thread has a buffer corresponding to it
 
+	string filename = argv[3];
+	mat = read_matrix(filename, MATRIX_SIZE);
+
+
 	// ------------------------------------------------------------------------------------------
 	// ------------- sequential timing	: 3.5 sec (two dimensional matrix pointing to doubles)
 	// ------------- parallel timing	: 2.9 sec (two dimensional matrix pointing to doubles)
@@ -58,7 +63,7 @@ int main(int argc, char *argv[])
 			{
 				for(int i=0; i<MATRIX_SIZE; i++)
 				{
-					mat.push_back(new vector<double>(MATRIX_SIZE, (0)));
+//					mat.push_back(new vector<double>(MATRIX_SIZE, (0)));
 					mat_dup.push_back(new vector<double>(MATRIX_SIZE, (0)));
 				}
 			}
@@ -89,7 +94,7 @@ int main(int argc, char *argv[])
 			{
 				#pragma omp critical										// data dependency
 				{
-					drand48_r( &buffers[omp_get_thread_num()%4], &((*mat[i])[j]) );
+//					drand48_r( &buffers[omp_get_thread_num()%4], &((*mat[i])[j]) );
 					(*mat_dup[i])[j] = (*mat[i])[j];
 				}
 			}
