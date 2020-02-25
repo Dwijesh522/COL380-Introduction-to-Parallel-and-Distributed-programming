@@ -161,6 +161,10 @@ int main(int argc, char *argv[])
 	duration_time = duration_cast<microseconds>(end_time - start_timer);
 	cout << "Time taken: " << duration_time.count()/1000000.0 << " seconds" << endl;
 
+	output_files_omp(lower, MATRIX_SIZE, MATRIX_SIZE, "L_size_nthreads.txt");
+	output_files_omp(upper, MATRIX_SIZE, MATRIX_SIZE, "U_size_nthreads.txt");
+	output_P_omp(permutation, MATRIX_SIZE, "P_size_nthreads.txt");
+
 	return 0;
 }
 // This function takes original input, permutation matrix, lower and upper triangular matrix as input and calculates the error

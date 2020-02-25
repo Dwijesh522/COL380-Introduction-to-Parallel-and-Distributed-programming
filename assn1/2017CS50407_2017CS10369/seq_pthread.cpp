@@ -8,6 +8,7 @@
 #include<cmath>
 #include <unistd.h>
 #include <sys/syscall.h>
+#include "read_write.h"
 #define gettid() syscall(SYS_gettid)
 
 using namespace std;
@@ -44,7 +45,11 @@ struct data_bin
 	{
 		// all matrices will point to corresponding array of MATRIX_SIZE size.
 		// later each element of these array will point to corresponding array of double elements
-		mat = 	  (double **)(new double[MATRIX_SIZE]);
+//		mat = 	  (double **)(new double[MATRIX_SIZE]);
+		cout << "enter the file name\n";
+		string filename;
+		cin >> filename;
+		mat = read_matrix_pthreads(filename, MATRIX_SIZE);
 		mat_dup = (double **)(new double[MATRIX_SIZE]);
 		lower =   (double **)(new double[MATRIX_SIZE]);
 		upper =   (double **)(new double[MATRIX_SIZE]);
@@ -53,7 +58,7 @@ struct data_bin
 		// allocate memory to each array elements to create two dimensional matrices
 		for(int i=0; i<MATRIX_SIZE; i++)
 		{
-			mat[i] = new double[MATRIX_SIZE];
+//			mat[i] = new double[MATRIX_SIZE];
 			mat_dup[i] = new double[MATRIX_SIZE];
 			lower[i] = new double[MATRIX_SIZE];
 			upper[i] = new double[MATRIX_SIZE];
@@ -91,6 +96,7 @@ int main(int argc, char *argv[])
 	}
 
 	sscanf(argv[1], "%d", &MATRIX_SIZE);
+	
 
 	// data_bin has all matrices within it.
 	data_bin data = data_bin();
@@ -141,6 +147,11 @@ int main(int argc, char *argv[])
 	end_time = high_resolution_clock::now();
 	duration_time = duration_cast<microseconds>(end_time - start_timer);
 	cout << "Time taken after error calculation: " << duration_time.count()/1000000.0 << " seconds" << endl;
+
+	output_files_pthread(data.lower, MATRIX_SIZE, MATRIX_SIZE, "L_size_nthreads.txt");
+	output_files_pthread(data.upper, MATRIX_SIZE, MATRIX_SIZE, "U_size_nthreads.txt");
+	output_P_pthread(data.permutation, MATRIX_SIZE, "P_size_nthreads.txt");
+
 	for(int i=0; i<MATRIX_SIZE; i++)
 	{
 		delete data.mat_dup[i];
@@ -184,8 +195,8 @@ void init(void *arg)
 		permutation[i] = i;
 		for(int j=0; j<MATRIX_SIZE; j++)
 		{
-			drand48_r( &buffer, &(mat[i][j]) );
-			mat[i][j] *= 1000;
+//			drand48_r( &buffer, &(mat[i][j]) );
+//			mat[i][j] *= 1000;
 			mat_dup[i][j] = mat[i][j];
 		}
 	}
