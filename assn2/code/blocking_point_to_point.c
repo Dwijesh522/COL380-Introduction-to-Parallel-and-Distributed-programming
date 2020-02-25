@@ -15,18 +15,17 @@
 // p: number of processors available in pc
 // -----------------------------------------
 
-// ----------- helper fxns -----------------------------------------------------------------------------------------------------------
+// ----------- helper fxns ---------------------------------------------------
 void init_matrix(double *m, int rows, int cols, bool rand_init);
 void print_matrix(double *m, int rows, int cols);
-void seq_matrix_multiplication_request_check(double *a, double *b, double *c, int m, int n, MPI_Request request[], int request_count);
 void seq_matrix_multiplication(double *a, double *b, double *c, int m, int n);
 bool isEqual(double *a, double *b, int r, int c);
-// -----------------------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 
 int main()
 {
 	int n, m, p, sqrt_p;
-	double *A, *B, *C, *A_dash, *B_dash, *C_dash;
+	double *A, *B, *C;
 	double *ans_seq;
 	clock_t time_par, time_seq;
 	// initializing the MPI env
@@ -51,9 +50,6 @@ int main()
 		A = (double *)malloc((n/sqrt_p)*(m/sqrt_p)*sizeof(double));
 		B = (double *)malloc((n/sqrt_p)*(m/sqrt_p)*sizeof(double));
 		C = (double *)malloc((n/sqrt_p)*(n/sqrt_p)*sizeof(double));
-		A_dash = (double *)malloc((n/sqrt_p)*(m/sqrt_p)*sizeof(double));
-		B_dash = (double *)malloc((n/sqrt_p)*(m/sqrt_p)*sizeof(double));
-		C_dash = (double *)malloc((n/sqrt_p)*(n/sqrt_p)*sizeof(double));
 
 		time_t t;
 		srand((unsigned)time(&t));
@@ -68,30 +64,19 @@ int main()
 		time_seq = clock() - time_seq;
 		printf("Starting par multiplication...\n");
 		
-		// temp matrix of matrix for sending info to others
-		double *temp_A[p-1], *temp_B[p-1];
-		MPI_Request request[3*(p-1)];
-		MPI_Status status[3*(p-1)];
-		
-		int temp_par[3];
-		temp_par[0] = n;
-		temp_par[1] = m;
-		temp_par[2] = p;
-		int request_counter = 0;
-		int index_count;
-		int indices[p-1];
 		// let other process know n, m, p
 		time_par = clock();
-		for(int k=1; k<p; k++)
+		for(int i=1; i<p; i++)
 		{
-			temp_A[k] = (double *)malloc((n/sqrt_p)*(m/sqrt_p)*sizeof(double));
-			temp_B[k] = (double *)malloc((n/sqrt_p)*(m/sqrt_p)*sizeof(double));
-
-			MPI_Isend(temp_par, 3, MPI_INT, k, 0, MPI_COMM_WORLD, &request[request_counter++]);
+			int temp_par[3];
+			temp_par[0] = n;
+			temp_par[1] = m;
+			temp_par[2] = p;
+			MPI_Send(temp_par, 3, MPI_INT, i, 0, MPI_COMM_WORLD);
 			// cart coordinates of the porcess i
 			int proc_cart_coord[2];
-			proc_cart_coord[0] = k/sqrt_p;
-			proc_cart_coord[1] = k%sqrt_p;
+			proc_cart_coord[0] = i/sqrt_p;
+			proc_cart_coord[1] = i%sqrt_p;
 			// corresponding matrix coordinates for process i
 			int A_coord[2], B_coord[2];
 			A_coord[0] = proc_cart_coord[0]*n/sqrt_p;
@@ -101,13 +86,12 @@ int main()
 			// coping corresponding elements for sending to process i
 			for(int i=0; i<n/sqrt_p; i++)
 				for(int j=0; j<m/sqrt_p; j++)
-					temp_A[k][i*(m/sqrt_p) + j] = big_A[(A_coord[0]+i)*m + A_coord[1]+j];
+					A[i*(m/sqrt_p) + j] = big_A[(A_coord[0]+i)*m + A_coord[1]+j];
 			for(int i=0; i<m/sqrt_p; i++)
 				for(int j=0; j<n/sqrt_p; j++)
-					temp_B[k][i*(n/sqrt_p) + j] = big_B[(B_coord[0]+i)*n + B_coord[1]+j];
-			MPI_Isend(temp_A[k], m*n/p, MPI_DOUBLE, k, 1, MPI_COMM_WORLD, &request[request_counter++]);
-			MPI_Isend(temp_B[k], m*n/p, MPI_DOUBLE, k, 1, MPI_COMM_WORLD, &request[request_counter++]);
-			MPI_Testsome(3*(k), request, &index_count, indices, MPI_STATUS_IGNORE);
+					B[i*(n/sqrt_p) + j] = big_B[(B_coord[0]+i)*n + B_coord[1]+j];
+			MPI_Send(A, m*n/p, MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
+			MPI_Send(B, m*n/p, MPI_DOUBLE, i, 1, MPI_COMM_WORLD);
 		}
 		// coping my own A, B.
 		for(int i=0; i<n/sqrt_p; i++)
@@ -116,9 +100,6 @@ int main()
 		for(int i=0; i<m/sqrt_p; i++)
 			for(int j=0; j<n/sqrt_p; j++)
 				B[i*(n/sqrt_p) + j] = big_B[i*n + j];
-		printf("waiting for request...\n");
-		// waiting for the requests to be accepted
-		MPI_Waitall(3*(p-1), request, status);
 		// freeing extra memory
 		free(big_A);
 		free(big_B);
@@ -136,11 +117,8 @@ int main()
 		A = (double *)malloc((n/sqrt_p)*(m/sqrt_p)*sizeof(double));
 		B = (double *)malloc((n/sqrt_p)*(m/sqrt_p)*sizeof(double));
 		C = (double *)malloc((n/sqrt_p)*(n/sqrt_p)*sizeof(double));
-		A_dash = (double *)malloc((n/sqrt_p)*(n/sqrt_p)*sizeof(double));
-		B_dash = (double *)malloc((n/sqrt_p)*(n/sqrt_p)*sizeof(double));
 		MPI_Recv(A, n*m/p, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		MPI_Recv(B, n*m/p, MPI_DOUBLE, 0, 1, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		printf("receiver: message received\n");
 		init_matrix(C, n/sqrt_p, n/sqrt_p, false);
 	}
 	// +----------------------------------------------------------------------------------------------------+
@@ -161,128 +139,35 @@ int main()
 	// cartesian coord
 	int cart_coord[2];
 	MPI_Cart_coords(MPI_COMM_WORLD_2D, my_rank, 2, cart_coord);
-	bool is_even = 1 - (cart_coord[0] + cart_coord[1])%2;
 	//-----------------------------------------------------------------------
 	
 	
 	
 	// -------------------------------------- initial shift -----------------------------------------------------------------------
 	int rank_source, rank_dest;
-	bool A_dash_active = false;
-	bool B_dash_active = false;
-	MPI_Request shift_request[2];
-	MPI_Status shift_status[2];
-	int request_count = 0;
 	// !!!!!   direction=1 for row shift,	direction=0 for column shift !!!!!!!!!!
 	// row shifting
 	MPI_Cart_shift(MPI_COMM_WORLD_2D, 1, -cart_coord[0], &rank_source, &rank_dest);
-	if(is_even && my_rank != rank_dest)
-	{
-		MPI_Send(A, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_dest, 0, MPI_COMM_WORLD);
-		MPI_Recv(A_dash, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		A_dash_active = true;
-	}
-	else if(my_rank != rank_dest)
-	{	
-		MPI_Recv(A_dash, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		MPI_Isend(A, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_dest, 0, MPI_COMM_WORLD, &shift_request[request_count++]);
-		A_dash_active = true;
-	}
+	MPI_Sendrecv_replace(A, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_dest, 0, rank_source, 0, MPI_COMM_WORLD_2D, MPI_STATUS_IGNORE);
 	// col shifting
 	MPI_Cart_shift(MPI_COMM_WORLD_2D, 0, -cart_coord[1], &rank_source, &rank_dest);
-	if(is_even && my_rank != rank_dest)
-	{
-		MPI_Send(B, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_dest, 0, MPI_COMM_WORLD);
-		MPI_Recv(B_dash, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		B_dash_active = true;
-	}
-	else if(my_rank != rank_dest)
-	{
-		MPI_Recv(B_dash, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		MPI_Isend(B, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_dest, 0, MPI_COMM_WORLD, &shift_request[request_count++]);
-		B_dash_active = true;
-	}
+	MPI_Sendrecv_replace(B, (m/sqrt_p)*(n/sqrt_p), MPI_DOUBLE, rank_dest, 0, rank_source, 0, MPI_COMM_WORLD_2D, MPI_STATUS_IGNORE);
 	//-----------------------------------------------------------------------------------------------------------------------------
 	
 	
-	
-	// --------------------------------------------------------------------- block multiplication ----------------------------------------------------------------------
+		
+	// ----------------------------------------------------- block multiplication ---------------------------------------------------------
 	for(int i=0; i<sqrt_p; i++)
 	{
-		if(A_dash_active && B_dash_active)		
-			seq_matrix_multiplication_request_check(A_dash, B_dash, C, (n/sqrt_p), (m/sqrt_p), shift_request, request_count);
-		else if(A_dash_active && !B_dash_active)	
-			seq_matrix_multiplication_request_check(A_dash, B, C, (n/sqrt_p), (m/sqrt_p), shift_request, request_count);
-		else if(!A_dash_active && B_dash_active)	seq_matrix_multiplication_request_check(A, B_dash, C, (n/sqrt_p), (m/sqrt_p), shift_request, request_count);
-		else						seq_matrix_multiplication_request_check(A, B, C, (n/sqrt_p), (m/sqrt_p), shift_request, request_count);
+		seq_matrix_multiplication(A, B, C, (n/sqrt_p), (m/sqrt_p));
 		// send local copy of matrx A to left by 1 unit
-		if(!is_even)	MPI_Waitall(request_count, shift_request, shift_status);
-		request_count = 0;
 		MPI_Cart_shift(MPI_COMM_WORLD_2D, 1, -1, &rank_source, &rank_dest);
-		if(is_even)
-		{
-			if(A_dash_active)
-			{
-				MPI_Send(A_dash, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_dest, 0, MPI_COMM_WORLD);
-				MPI_Recv(A, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				A_dash_active = false;
-			}
-			else
-			{
-				MPI_Send(A, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_dest, 0, MPI_COMM_WORLD);
-				MPI_Recv(A_dash, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				A_dash_active = true;
-			}
-		}
-		else
-		{
-			if(A_dash_active)
-			{
-				MPI_Recv(A, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				MPI_Isend(A_dash, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_dest, 0, MPI_COMM_WORLD, &shift_request[request_count++]);
-				A_dash_active = false;
-			}
-			else
-			{
-				MPI_Recv(A_dash, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				MPI_Isend(A, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_dest, 0, MPI_COMM_WORLD, &shift_request[request_count++]);
-				A_dash_active = true;
-			}
-		}
+		MPI_Sendrecv_replace(A, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_dest, 0, rank_source, 0, MPI_COMM_WORLD_2D, MPI_STATUS_IGNORE);
 		// send local copy of matrix B to up by 1 unit
 		MPI_Cart_shift(MPI_COMM_WORLD_2D, 0, -1, &rank_source, &rank_dest);
-		if(is_even)
-		{
-			if(B_dash_active)
-			{
-				MPI_Send(B_dash, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_dest, 0, MPI_COMM_WORLD);
-				MPI_Recv(B, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				B_dash_active = false;
-			}
-			else
-			{
-				MPI_Send(B, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_dest, 0, MPI_COMM_WORLD);
-				MPI_Recv(B_dash, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				B_dash_active = true;
-			}
-		}
-		else
-		{
-			if(B_dash_active)
-			{
-				MPI_Recv(B, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				MPI_Isend(B_dash, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_dest, 0, MPI_COMM_WORLD, &shift_request[request_count++]);
-				B_dash_active = false;
-			}
-			else
-			{
-				MPI_Recv(B_dash, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_source, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-				MPI_Isend(B, (n/sqrt_p)*(m/sqrt_p), MPI_DOUBLE, rank_dest, 0, MPI_COMM_WORLD, &shift_request[request_count++]);
-				B_dash_active = true;
-			}
-		}
+		MPI_Sendrecv_replace(B, (m/sqrt_p)*(n/sqrt_p), MPI_DOUBLE, rank_dest, 0, rank_source, 0, MPI_COMM_WORLD_2D, MPI_STATUS_IGNORE);
 	}
-	//------------------------------------------------------------------------------------------------------------------------------------------------------------------
+	//-------------------------------------------------------------------------------------------------------------------------------------
 	// +----------------------------------------------------------------------------------------------------+
 	// |			At this point processes have calculated their own blocked ans 			|
 	// +----------------------------------------------------------------------------------------------------+
@@ -325,8 +210,6 @@ int main()
 		free(A);
 		free(B);
 		free(C);
-		free(A_dash);
-		free(B_dash);
 	}
 	// ---------------------------------------------------------------------------------------------------------------
 	// +----------------------------------------------------------------------------------------------------+
@@ -371,19 +254,6 @@ bool isEqual(double *a, double *b, int r, int c)
 }
 
 // does c = a*b, a: mxn, b: nxm, c: mxm
-void seq_matrix_multiplication_request_check(double *a, double *b, double *c, int m, int n, MPI_Request request[], int request_count)
-{
-	int accepted1 = 0, accepted2 = 0;
-	for(int i=0; i<m; i++)
-		for(int j=0; j<m; j++)
-		{
-			for(int k=0; k<n; k++)				c[i*m + j] += a[i*n + k]*b[k*m + j];
-			if(!accepted1 && request_count >= 1)		MPI_Test(&request[0], &accepted1, MPI_STATUS_IGNORE);
-			if(!accepted2 && request_count >= 2)		MPI_Test(&request[1], &accepted2, MPI_STATUS_IGNORE);
-		}
-}
-
-// does c = a*b, a: mxn, b: nxm, c: mxm
 void seq_matrix_multiplication(double *a, double *b, double *c, int m, int n)
 {
 	for(int i=0; i<m; i++)
@@ -410,3 +280,14 @@ void print_matrix(double *m, int rows, int cols)
 	}
 	printf("\n");
 }
+
+
+
+
+
+
+	// dividing the work. Each process identifies its own 
+	// block of matrix from input matrix
+//	int A_coord[2], B_coord[2];
+//	B_coord[0] = A_coord[0] = cart_coord[0]*n/sqrt_p;
+//	B_coord[1] = A_coord[1] = cart_coord[1]*m/sqrt_p;
